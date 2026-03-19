@@ -4,6 +4,8 @@ import torch.nn.functional as F
 import torchvision.models as models
 from tqdm import tqdm # Progress bar library
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 
 # Import from your files (Keep unchanged)
@@ -85,55 +87,201 @@ def triplet_loss(embeddings, labels, margin=1.0):
 # =====================================================================
 # MAIN TRAINING LOOP
 # =====================================================================
-def train_model(model, train_loader, num_epochs=10, learning_rate=1e-4, device='cpu'):
+# def train_model(model, train_loader, num_epochs=10, learning_rate=1e-4, device='cpu'):
+#     model = model.to(device)
+#     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    
+#     print(f"\nSTARTING TRAINING ON: {str(device).upper()}")
+#     print("-" * 60)
+    
+#     for epoch in range(num_epochs):
+#         model.train() # Switch to train mode
+#         running_loss = 0.0
+        
+#         # Progress bar
+#         progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}", leave=True)
+        
+#         for images, labels in progress_bar:
+#             # 1. Move data to device
+#             images = images.to(device)
+#             labels = labels.to(device)
+            
+#             # 2. Clear previous gradients
+#             optimizer.zero_grad()
+            
+#             # 3. FORWARD PASS: Get feature vectors
+#             embeddings = model(images, return_projection=True)
+            
+#             # 4. CALCULATE LOSS
+#             loss = triplet_loss(embeddings, labels, margin=1.0)
+            
+#             # Only update weights if loss > 0
+#             if loss.item() > 0:
+#                 # 5. BACKWARD PASS: Backpropagation
+#                 loss.backward()
+                
+#                 # 6. OPTIMIZER: Update weights
+#                 optimizer.step()
+            
+#             # Update progress bar metrics
+#             running_loss += loss.item()
+#             progress_bar.set_postfix({'loss': f"{loss.item():.4f}"})
+            
+#         epoch_loss = running_loss / len(train_loader)
+#         print(f"End of Epoch {epoch+1} | Average Loss: {epoch_loss:.4f}\n")
+        
+#     return model
+
+# if __name__ == "__main__":
+#     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+#     # 1. Prepare DataLoader (Remember to increase batch_size to 16 or 32 to ensure variety in a batch)
+#     print("Loading data from DataLoader...")
+#     dataloaders = prepare_dataloaders(
+#         original_dir=ORIGINAL_DATA_DIR, 
+#         augmented_dir=AUGMENTED_DATA_DIR, 
+#         batch_size=32, 
+#         use_augmented=True
+#     )
+#     train_loader = dataloaders['train']
+    
+#     # 2. Initialize Model
+#     model = RiceFeatureExtractor(embedding_dim=128, use_pretrained=True)
+    
+#     # 3. Start training
+#     # Set the number of epochs according to your preference
+#     trained_model = train_model(
+#         model=model, 
+#         train_loader=train_loader, 
+#         num_epochs=10, 
+#         learning_rate=1e-4, 
+#         device=device
+#     )
+    
+#     # 4. Save the Model
+#     save_path = "rice_feature_extractor.pth"
+#     torch.save(trained_model.state_dict(), save_path)
+#     print(f"Model successfully saved to: {save_path}")
+    
+    
+
+
+# =====================================================================
+# MAIN TRAINING LOOP (WITH LOSS TRACKING & EARLY STOPPING)
+# =====================================================================
+def train_model(model, train_loader, val_loader, num_epochs=50, learning_rate=1e-4, device='cpu', patience=5):
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     
-    print(f"\nSTARTING TRAINING ON: {str(device).upper()}")
+    # Early Stopping & Loss Tracking variables
+    best_val_loss = float('inf') 
+    epochs_no_improve = 0        
+    best_model_path = "rice_feature_extractor.pth"
+    
+    # Lists to store loss values for plotting
+    history_train_loss = []
+    history_val_loss = []
+    
+    print(f"\nSTARTING TRAINING ON: {str(device).upper()} (Max {num_epochs} Epochs)")
     print("-" * 60)
     
     for epoch in range(num_epochs):
-        model.train() # Switch to train mode
-        running_loss = 0.0
+        # -----------------------------------------
+        # 1. TRAINING PHASE
+        # -----------------------------------------
+        model.train() 
+        running_train_loss = 0.0
+        train_batches = 0
         
-        # Progress bar
-        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}", leave=True)
-        
+        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs} [Train]", leave=False)
         for images, labels in progress_bar:
-            # 1. Move data to device
-            images = images.to(device)
-            labels = labels.to(device)
+            images, labels = images.to(device), labels.to(device)
             
-            # 2. Clear previous gradients
             optimizer.zero_grad()
-            
-            # 3. FORWARD PASS: Get feature vectors
             embeddings = model(images, return_projection=True)
-            
-            # 4. CALCULATE LOSS
             loss = triplet_loss(embeddings, labels, margin=1.0)
             
-            # Only update weights if loss > 0
             if loss.item() > 0:
-                # 5. BACKWARD PASS: Backpropagation
                 loss.backward()
-                
-                # 6. OPTIMIZER: Update weights
                 optimizer.step()
-            
-            # Update progress bar metrics
-            running_loss += loss.item()
-            progress_bar.set_postfix({'loss': f"{loss.item():.4f}"})
-            
-        epoch_loss = running_loss / len(train_loader)
-        print(f"End of Epoch {epoch+1} | Average Loss: {epoch_loss:.4f}\n")
+                running_train_loss += loss.item()
+                train_batches += 1
+                progress_bar.set_postfix({'loss': f"{loss.item():.4f}"})
+                
+        epoch_train_loss = running_train_loss / max(1, train_batches)
+        history_train_loss.append(epoch_train_loss)
         
-    return model
+        # -----------------------------------------
+        # 2. VALIDATION PHASE
+        # -----------------------------------------
+        model.eval() 
+        running_val_loss = 0.0
+        val_batches = 0
+        
+        with torch.no_grad():
+            for images, labels in val_loader:
+                images, labels = images.to(device), labels.to(device)
+                embeddings = model(images, return_projection=True)
+                val_loss = triplet_loss(embeddings, labels, margin=1.0)
+                
+                if val_loss.item() > 0:
+                    running_val_loss += val_loss.item()
+                    val_batches += 1
+                    
+        epoch_val_loss = running_val_loss / max(1, val_batches)
+        history_val_loss.append(epoch_val_loss)
+        
+        print(f"Epoch {epoch+1:02d} | Train Loss: {epoch_train_loss:.4f} | Val Loss: {epoch_val_loss:.4f}")
+        
+        
+        if epoch_val_loss < best_val_loss:
+            best_val_loss = epoch_val_loss
+            epochs_no_improve = 0
+            torch.save(model.state_dict(), best_model_path)
+            print(f"   -> New best model saved to: {best_model_path}")
+        else:
+            epochs_no_improve += 1
+            print(f"   -> Val Loss did not improve. (Patience {epochs_no_improve}/{patience})")
+            
+            if epochs_no_improve >= patience:
+                print("\nEARLY STOPPING TRIGGERED! Model might be starting to overfit.")
+                print(f"Stopped at Epoch {epoch+1}.")
+                break 
+
+    print("-" * 60)
+    print(f"Training completed! Best Val Loss: {best_val_loss:.4f}")
+    
+    # Load the best weights back into the model before returning
+    model.load_state_dict(torch.load(best_model_path))
+    
+    # Return model and the tracked loss histories
+    return model, history_train_loss, history_val_loss
+
+# =====================================================================
+# PLOTTING LEARNING CURVES
+# =====================================================================
+def plot_learning_curves(train_losses, val_losses, save_path="learning_curves.png"):
+    """
+    Plots the Training and Validation Loss to check for Overfitting.
+    """
+    plt.figure(figsize=(10, 6))
+    plt.plot(train_losses, label='Training Loss', marker='o', linewidth=2)
+    plt.plot(val_losses, label='Validation Loss', marker='o', linewidth=2)
+    
+    plt.title('Training and Validation Loss Over Epochs')
+    plt.xlabel('Epoch')
+    plt.ylabel('Triplet Loss')
+    plt.legend()
+    plt.grid(True, linestyle='--', alpha=0.7)
+    
+    plt.tight_layout()
+    plt.savefig(save_path)
+    print(f"\nLearning curves plotted and saved to '{save_path}'")
+    plt.show()
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # 1. Prepare DataLoader (Remember to increase batch_size to 16 or 32 to ensure variety in a batch)
     print("Loading data from DataLoader...")
     dataloaders = prepare_dataloaders(
         original_dir=ORIGINAL_DATA_DIR, 
@@ -141,26 +289,26 @@ if __name__ == "__main__":
         batch_size=32, 
         use_augmented=True
     )
-    train_loader = dataloaders['train']
     
-    # 2. Initialize Model
+    # Ensure you are getting both train and val loaders
+    train_loader = dataloaders['train']
+    val_loader = dataloaders['val']
+    
     model = RiceFeatureExtractor(embedding_dim=128, use_pretrained=True)
     
-    # 3. Start training
-    # Set the number of epochs according to your preference
-    trained_model = train_model(
+    # Train the model and get the loss histories
+    trained_model, train_losses, val_losses = train_model(
         model=model, 
         train_loader=train_loader, 
-        num_epochs=10, 
+        val_loader=val_loader,
+        num_epochs=30,  # You can increase this, early stopping will prevent overfitting
         learning_rate=1e-4, 
-        device=device
+        device=device,
+        patience=10
     )
     
-    # 4. Save the Model
-    save_path = "rice_feature_extractor.pth"
-    torch.save(trained_model.state_dict(), save_path)
-    print(f"Model successfully saved to: {save_path}")
-    
+    # Plot the learning curves after training is done
+    plot_learning_curves(train_losses, val_losses)
 def extract_features(model, dataloader, device):
     """
     Run all images through the model and collect vectors into a Numpy array

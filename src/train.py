@@ -65,6 +65,16 @@ if __name__ == "__main__":
     print("\nDetails per rice variety:")
     print(classification_report(test_labels, predictions, target_names=RICE_VARIETIES))    
     
+    
+    
+    SV=svm.SVC(kernel='linear', random_state=42)
+    SV.fit(train_features, train_labels)
+    sv_predictions = SV.predict(test_features)
+    sv_acc = accuracy_score(test_labels, sv_predictions)
+    
+    print(f"\nSVM TEST SET ACCURACY: {sv_acc * 100:.2f}%")
+    print(classification_report(test_labels, sv_predictions, target_names=RICE_VARIETIES))    
+    
     tsne = TSNE(n_components=2, random_state=42, perplexity=30)
     tsne_results = tsne.fit_transform(test_features)
     
@@ -82,6 +92,13 @@ if __name__ == "__main__":
         legend="full",
         alpha=0.7 # Slightly transparent to clearly see overlapping points
     )
+    
+    
+    
+    
+    
+
+    
     
     # Decorate the plot for better visibility
     plt.title("t-SNE Clustering of Rice Varieties")
