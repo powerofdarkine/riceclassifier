@@ -146,13 +146,12 @@ def setup_project_dirs(project_root):
         print(f"✓ {dir_name}/ directory created/verified")
 
 
-def verify_dataset(original_dir, augmented_dir, rice_varieties):
+def verify_dataset(original_dir, rice_varieties):
     """
     Verify dataset integrity
     
     Args:
         original_dir: Path to original dataset
-        augmented_dir: Path to augmented dataset
         rice_varieties: List of rice variety names
         
     Returns:
@@ -160,14 +159,11 @@ def verify_dataset(original_dir, augmented_dir, rice_varieties):
     """
     results = {
         'original_complete': True,
-        'augmented_complete': True,
         'missing_varieties': [],
-        'original_stats': {},
-        'augmented_stats': {}
+        'original_stats': {}
     }
     
     original_dir = Path(original_dir)
-    augmented_dir = Path(augmented_dir)
     
     print("\nVerifying dataset...")
     
@@ -180,16 +176,6 @@ def verify_dataset(original_dir, augmented_dir, rice_varieties):
         else:
             image_count = len(list(variety_path.glob("*.*")))
             results['original_stats'][variety] = image_count
-    
-    # Check augmented dataset
-    for variety in rice_varieties:
-        variety_path = augmented_dir / variety
-        if not variety_path.exists():
-            results['augmented_complete'] = False
-            results['missing_varieties'].append(f"Augmented/{variety}")
-        else:
-            image_count = len(list(variety_path.glob("*.*")))
-            results['augmented_stats'][variety] = image_count
     
     return results
 
@@ -219,7 +205,6 @@ def create_project_summary(results_dict, output_path):
     summary.append("  ├── models/                - Trained models")
     summary.append("  ├── results/               - Evaluation results")
     summary.append("  ├── Original/              - Original dataset")
-    summary.append("  ├── Augmented/             - Augmented dataset")
     summary.append("  ├── requirements.txt       - Dependencies")
     summary.append("  └── README.md              - Documentation")
     summary.append("")

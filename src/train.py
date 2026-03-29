@@ -25,9 +25,7 @@ if __name__ == "__main__":
     print("\n1. Preparing data...")
     dataloaders = prepare_dataloaders(
         original_dir=ORIGINAL_DATA_DIR, 
-        augmented_dir=AUGMENTED_DATA_DIR, 
-        batch_size=32, 
-        use_augmented=True # Set to False if you do not want to use augmented images for testing
+        batch_size=32
     )
     # Get Train set (as dictionary) and Test set (for evaluation)
     train_loader = dataloaders['train']
@@ -93,17 +91,8 @@ if __name__ == "__main__":
         alpha=0.7 # Slightly transparent to clearly see overlapping points
     )
     
-    
-    
-    
-    
-
-    
-    
     # Decorate the plot for better visibility
     plt.title("t-SNE Clustering of Rice Varieties")
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left') # Move legend outside to avoid overlapping with the plot
     plt.tight_layout() # Adjust layout so the legend is not cropped
     plt.show()
-
-# Use a palette with more colors, e.g., tab20 (max 20 colors) or husl

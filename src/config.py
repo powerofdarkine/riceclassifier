@@ -2,14 +2,12 @@
 Configuration file for Rice Variety Classification project
 """
 
-import os
 from pathlib import Path
 
 # Project paths
 PROJECT_ROOT = Path(__file__).parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 ORIGINAL_DATA_DIR = PROJECT_ROOT / "data" / "Original"
-AUGMENTED_DATA_DIR = PROJECT_ROOT / "data" / "Augmented"
 MODELS_DIR = PROJECT_ROOT / "models"
 RESULTS_DIR = PROJECT_ROOT / "results"
 
@@ -34,11 +32,6 @@ USE_TRANSFER_LEARNING = True
 PRETRAINED_MODEL = "efficientnet_b0"  # Options: resnet50, efficientnet_b0, vgg16, mobilenet
 FREEZE_BASE_LAYERS = True
 NUM_FREEZE_LAYERS = -30  # Negative means freeze from the end
-
-# Data augmentation strategy
-NUM_AUGMENTATIONS_PER_ORIGINAL = 5  # Each original image has 5 augmented versions
-USE_AUGMENTED_DATA = True  # Use augmented images paired with original
-AUGMENTATION_STRATEGY = "paired"  # Each original index i has augmented at: i, i+len_original, i+2*len_original, etc.
 
 # Rice varieties (classes)
 RICE_VARIETIES = [

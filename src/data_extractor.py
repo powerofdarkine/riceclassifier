@@ -206,9 +206,7 @@ if __name__ == "__main__":
     print("Loading data from DataLoader...")
     dataloaders = prepare_dataloaders(
         original_dir=ORIGINAL_DATA_DIR, 
-        augmented_dir=AUGMENTED_DATA_DIR, 
-        batch_size=32, 
-        use_augmented=True
+        batch_size=32
     )
     
     # Ensure you are getting both train and val loaders
