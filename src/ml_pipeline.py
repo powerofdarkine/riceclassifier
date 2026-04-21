@@ -10,13 +10,14 @@ from typing import Any, Dict, List, Literal, cast
 
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
+from xgboost import XGBClassifier
 
 try:
     torch = importlib.import_module("torch")
@@ -186,6 +187,10 @@ def use_torch_gpu_for_model(model_name: str, backend: Dict[str, Any]) -> bool:
     return bool(backend.get("use_torch_gpu")) and model_name in TORCH_GPU_MODEL_NAMES
 
 
+def use_xgboost_gpu_for_model(model_name: str, backend: Dict[str, Any]) -> bool:
+    return model_name == "xgboost" and str(backend.get("xgb_device", "cpu")).startswith("cuda")
+
+
 def resolve_device(requested: str) -> str:
     req = requested.lower()
     if req not in {"auto", "cpu", "cuda", "mps"}:
@@ -219,17 +224,35 @@ def init_backend(device: str) -> Dict[str, Any]:
         "use_cuml": False,
         "use_torch_gpu": False,
         "torch_device": "cpu",
+        "xgb_device": "cpu",
         "cp": None,
         "label": "cpu_sklearn",
     }
 
     if device == "cuda":
+        if torch is not None and torch.cuda.is_available():
+            backend["xgb_device"] = "cuda"
+
         try:
             import cupy as cp  # type: ignore[import-not-found]
+
+            backend["cp"] = cp
+            if backend.get("xgb_device") == "cuda":
+                print("[INFO] Using CuPy arrays for XGBoost CUDA data path.")
+        except Exception as exc:
+            if backend.get("xgb_device") == "cuda":
+                print(f"[WARN] CuPy unavailable for XGBoost CUDA data path ({exc}). Falling back XGBoost to CPU.")
+                backend["xgb_device"] = "cpu"
+
+        try:
             from cuml.ensemble import RandomForestClassifier as CuRF  # type: ignore[import-not-found]
             from cuml.linear_model import LogisticRegression as CuLogReg  # type: ignore[import-not-found]
             from cuml.neighbors import KNeighborsClassifier as CuKNN  # type: ignore[import-not-found]
             from cuml.svm import SVC as CuSVC  # type: ignore[import-not-found]
+
+            cp = backend.get("cp")
+            if cp is None:
+                raise RuntimeError("CuPy is required for cuML backend")
 
             backend.update(
                 {
@@ -347,10 +370,10 @@ def get_param_grid() -> Dict[str, List[Dict[str, Any]]]:
             {"n_estimators": 300, "max_depth": 30, "max_features": "sqrt"},
             {"n_estimators": 400, "max_depth": 40, "max_features": "sqrt"},
         ],
-        "gradient_boosting": [
-            {"max_iter": 100, "learning_rate": 0.05, "max_leaf_nodes": 31},
-            {"max_iter": 150, "learning_rate": 0.1, "max_leaf_nodes": 31},
-            {"max_iter": 200, "learning_rate": 0.1, "max_leaf_nodes": 63},
+        "xgboost": [
+            {"n_estimators": 200, "learning_rate": 0.05, "max_depth": 6, "subsample": 0.9, "colsample_bytree": 0.9},
+            {"n_estimators": 300, "learning_rate": 0.1, "max_depth": 6, "subsample": 0.9, "colsample_bytree": 0.9},
+            {"n_estimators": 400, "learning_rate": 0.1, "max_depth": 8, "subsample": 1.0, "colsample_bytree": 1.0},
         ],
     }
 
@@ -450,12 +473,19 @@ def build_model(model_name: str, params: Dict[str, Any], random_state: int, back
             n_jobs=-1,
         )
 
-    if model_name == "gradient_boosting":
-        return HistGradientBoostingClassifier(
-            max_iter=int(params["max_iter"]),
+    if model_name == "xgboost":
+        return XGBClassifier(
+            n_estimators=int(params["n_estimators"]),
             learning_rate=float(params["learning_rate"]),
-            max_leaf_nodes=int(params["max_leaf_nodes"]),
+            max_depth=int(params["max_depth"]),
+            subsample=float(params["subsample"]),
+            colsample_bytree=float(params["colsample_bytree"]),
+            objective="multi:softmax",
+            eval_metric="mlogloss",
+            tree_method="hist",
             random_state=random_state,
+            n_jobs=-1,
+            device=str(backend.get("xgb_device", "cpu")),
         )
 
     raise ValueError(f"Unsupported model: {model_name}")
@@ -494,7 +524,7 @@ def tune_model_on_val(
     tuning_start = time.perf_counter()
 
     for params in grid:
-        use_gpu_model = use_cuml_for_model(model_name, backend)
+        use_gpu_model = use_cuml_for_model(model_name, backend) or use_xgboost_gpu_for_model(model_name, backend)
         fit_train_x = maybe_to_gpu(train_x, backend) if use_gpu_model else train_x
         fit_train_y = maybe_to_gpu(train_y, backend) if use_gpu_model else train_y
         fit_val_x = maybe_to_gpu(val_x, backend) if use_gpu_model else val_x
@@ -530,7 +560,7 @@ def run_architecture_benchmark(
     backend: Dict[str, Any],
 ) -> List[Dict[str, float | str]]:
     rows: List[Dict[str, float | str]] = []
-    model_names = ["logreg", "linear_svm", "knn", "random_forest", "gradient_boosting"]
+    model_names = ["logreg", "linear_svm", "knn", "random_forest", "xgboost"]
 
     print(f"\n=== Architecture: {arch_data.name} ===")
     print(
@@ -548,7 +578,7 @@ def run_architecture_benchmark(
             backend,
         )
 
-        use_gpu_model = use_cuml_for_model(model_name, backend)
+        use_gpu_model = use_cuml_for_model(model_name, backend) or use_xgboost_gpu_for_model(model_name, backend)
         eval_test_x = maybe_to_gpu(arch_data.test_x, backend) if use_gpu_model else arch_data.test_x
         test_pred = model.predict(eval_test_x)
         test_metrics = evaluate_split(arch_data.test_y, to_numpy(test_pred, backend))
