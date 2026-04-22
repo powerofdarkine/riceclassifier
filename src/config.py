@@ -22,10 +22,11 @@ NUM_CHANNELS = 3
 RANDOM_SEED = 42
 
 # Training parameters
-EPOCHS = 100
+EPOCHS = 20
 LEARNING_RATE = 0.001
 VALIDATION_SPLIT = 0.2
 TEST_SPLIT = 0.2
+MINIMUM_DELTA=1e-3
 
 # Model parameters
 USE_TRANSFER_LEARNING = True
@@ -69,4 +70,3 @@ MODEL_SAVE_NAME = "rice_classifier_model.h5"
 BEST_MODEL_NAME = "rice_classifier_best.h5"
 HISTORY_FILE = "training_history.pkl"
 METRICS_FILE = "metrics.json"
-CONFUSION_MATRIX_FILE = "confusion_matrix.png"

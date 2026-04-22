@@ -232,12 +232,9 @@ This script will:
 4. Save trained models to the `models/` directory
 5. Generate evaluation metrics and save to `results/`
 
-#### Option 2: Train specific models
-
-### Data extractor
+#### Option 2: deep Learning Model
 ```bash
-cd src
-python data_extractor.py
+python src/deep_learning.py
 ```
 
 
