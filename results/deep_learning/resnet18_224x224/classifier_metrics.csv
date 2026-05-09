@@ -1,0 +1,2 @@
+extractor,backbone,best_val_acc,test_loss,test_acc,test_precision_weighted,test_recall_weighted,test_f1_weighted
+resnet18_224x224,resnet18,0.9059196617336153,0.3112075739790219,0.904862579281184,0.9108714751072854,0.904862579281184,0.9045761344705883

@@ -1,0 +1,2 @@
+extractor,backbone,best_val_acc,test_loss,test_acc,test_precision_weighted,test_recall_weighted,test_f1_weighted
+vgg16_224x224,vgg16,0.8964059196617337,0.385937429602252,0.8604651162790697,0.8631564288290423,0.8604651162790697,0.8604881177960048

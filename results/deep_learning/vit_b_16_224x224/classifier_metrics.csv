@@ -1,0 +1,2 @@
+extractor,backbone,best_val_acc,test_loss,test_acc,test_precision_weighted,test_recall_weighted,test_f1_weighted
+vit_b_16_224x224,vit_b_16,0.9386892177589852,0.24561848418972204,0.9217758985200846,0.9252118048327569,0.9217758985200846,0.9207232632111095
