@@ -1,15 +1,26 @@
 import argparse
 from pathlib import Path
 from typing import Dict, List, Tuple
-from config import (
-    BATCH_SIZE,
-    EPOCHS,
-    LEARNING_RATE,
-    MINIMUM_DELTA,
-    MODELS_DIR,
-    RANDOM_SEED,
-    RESULTS_DIR,
-)
+try:
+    from .config import (
+        BATCH_SIZE,
+        EPOCHS,
+        LEARNING_RATE,
+        MINIMUM_DELTA,
+        MODELS_DIR,
+        RANDOM_SEED,
+        RESULTS_DIR,
+    )
+except ImportError:
+    from config import (
+        BATCH_SIZE,
+        EPOCHS,
+        LEARNING_RATE,
+        MINIMUM_DELTA,
+        MODELS_DIR,
+        RANDOM_SEED,
+        RESULTS_DIR,
+    )
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd

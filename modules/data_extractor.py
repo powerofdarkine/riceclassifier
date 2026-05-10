@@ -7,9 +7,14 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from config import ORIGINAL_DATA_DIR, RESULTS_DIR
-from data_loader import prepare_dataloaders
-from models import ALL_BACKBONES, build_backbone, eval_transform_for_backbone
+try:
+    from .config import ORIGINAL_DATA_DIR, RESULTS_DIR
+    from .data_loader import prepare_dataloaders
+    from .models import ALL_BACKBONES, build_backbone, eval_transform_for_backbone
+except ImportError:
+    from config import ORIGINAL_DATA_DIR, RESULTS_DIR
+    from data_loader import prepare_dataloaders
+    from models import ALL_BACKBONES, build_backbone, eval_transform_for_backbone
 
 
 @torch.no_grad()

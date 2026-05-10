@@ -5,7 +5,10 @@ from torch.utils.data import Dataset, DataLoader, Subset
 from pathlib import Path
 from PIL import Image
 from torchvision.transforms import v2
-from config import *
+try:
+    from .config import *
+except ImportError:
+    from config import *
 from sklearn.model_selection import train_test_split
 
 
