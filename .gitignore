@@ -1,2 +1,31 @@
-Data/
-/src/__pycache__
+# Dataset
+data/
+Original.zip
+
+# Features
+features/
+*.npy
+
+# Results
+results/
+models/
+*.h5
+*.pkl
+*.json
+*.csv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Report (Keep directory, ignore contents except .gitkeep)
+reports/*
+!reports/.gitkeep
