@@ -26,6 +26,3 @@ venv/
 # Jupyter
 .ipynb_checkpoints/
 
-# Report (Keep directory, ignore contents except .gitkeep)
-reports/*
-!reports/.gitkeep

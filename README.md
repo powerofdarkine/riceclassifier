@@ -2,10 +2,9 @@
 
 ## Project Information
 
-- **Course Name:** [COURSE_NAME]
-- **Course Code:** [COURSE_CODE]
-- **Semester:** [SEMESTER]
-- **Instructor:** [INSTRUCTOR]
+- **Course Name:** Machine Learning
+- **Semester:** HK252
+- **Instructor:** Trương Vĩnh Lân
 
 ### Team Members
 | Student ID | Full Name |
@@ -51,8 +50,9 @@ riceclassifier/
 └── requirements.txt                
 ```
 
+Our group colab run: https://colab.research.google.com/drive/1QZGj8JPE4BQb1YvOMdhT4hhJvvUJHB_O?usp=sharing
 ## How to Run in Google Colab
 1. Upload the `notebooks/rice_classifier.ipynb` notebook to Google Colab.
-2. Ensure the `modules/` folder is uploaded or cloned into the Colab environment.
+2. Select T4 GPU.
 3. Select **Runtime -> Run all**.
 4. The notebook will automatically download the dataset from Mendeley, perform EDA, run feature extraction, train all ML/DL models, and output the final comparisons.
